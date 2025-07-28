@@ -14,6 +14,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ## 2. Problem Statement
 
 ### Current Challenges
+
 - **Alert Fatigue**: DevOps teams receive hundreds of alerts daily without proper prioritization or context
 - **Manual Triage**: Engineers spend 40-60% of their time manually categorizing and investigating issues
 - **Knowledge Loss**: Solutions to recurring problems aren't systematically captured or reused
@@ -22,6 +23,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 - **Slow Response Time**: Average time to resolution increases due to lack of automated analysis
 
 ### Impact
+
 - Increased operational costs due to manual intervention
 - Delayed issue resolution affecting SLAs
 - Engineer burnout from constant on-call responsibilities
@@ -31,6 +33,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ## 3. Goals & Objectives
 
 ### Primary Goals
+
 1. **Reduce MTTR (Mean Time To Resolution)** by 60% through automated root cause analysis
 2. **Decrease alert noise** by 75% through intelligent grouping and deduplication
 3. **Improve engineer quality of life** by respecting working hours for non-critical issues
@@ -38,6 +41,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 5. **Enable proactive monitoring** through natural language system queries
 
 ### Measurable Objectives
+
 - Achieve 99.9% accuracy in P1/P2 alert classification within 6 months
 - Reduce false positive alerts by 80% within 3 months
 - Automate 70% of common issue resolutions within 1 year
@@ -47,40 +51,43 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ## 4. User Personas
 
 ### Primary: DevOps Engineer
+
 - **Name**: Sarah Chen
 - **Role**: Senior DevOps Engineer
 - **Experience**: 5+ years in cloud infrastructure
-- **Pain Points**: 
+- **Pain Points**:
   - Overwhelmed by alert volume
   - Repetitive troubleshooting tasks
   - Context switching between multiple systems
-- **Goals**: 
+- **Goals**:
   - Focus on strategic improvements
   - Reduce on-call stress
   - Automate routine investigations
 
 ### Secondary: Engineering Manager
+
 - **Name**: Michael Rodriguez
 - **Role**: Engineering Manager
 - **Experience**: 10+ years, manages 15-person team
-- **Pain Points**: 
+- **Pain Points**:
   - Lack of visibility into system health trends
   - Difficulty prioritizing engineering efforts
   - Team burnout from alerts
-- **Goals**: 
+- **Goals**:
   - Data-driven decision making
   - Improve team productivity
   - Reduce operational overhead
 
 ### Tertiary: On-Call Engineer
+
 - **Name**: Alex Kim
 - **Role**: Junior Software Engineer
 - **Experience**: 1-2 years, new to on-call rotation
-- **Pain Points**: 
+- **Pain Points**:
   - Lacks context for unfamiliar errors
   - Uncertain about escalation decisions
   - Anxious about making mistakes
-- **Goals**: 
+- **Goals**:
   - Quick access to solutions
   - Clear escalation paths
   - Learning from resolved issues
@@ -90,6 +97,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ### Foundation Layer (No Dependencies)
 
 #### Data Ingestion & Initial Processing
+
 1. **As a DevOps engineer**, I want the AI agent to automatically ingest logs from all my monitoring sources (Coralogix, Sentry, Prometheus) in real-time, so that I have a unified view of system health.
    - **Acceptance Criteria**:
      - Supports ingestion from Coralogix API with <100ms latency
@@ -404,6 +412,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ## 6. Functional Requirements
 
 ### 6.1 Log Ingestion & Processing (Must Have)
+
 - **FR-001**: Support ingestion from multiple sources (CloudWatch, Datadog, Splunk, custom APIs)
 - **FR-002**: Process minimum 10,000 logs per second with <100ms latency
 - **FR-003**: Support structured and unstructured log formats
@@ -411,6 +420,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 - **FR-005**: Real-time streaming processing with Apache Kafka integration
 
 ### 6.2 Issue Categorization (Must Have)
+
 - **FR-006**: Automatically categorize issues into predefined categories:
   - Infrastructure (Network, Compute, Storage)
   - Application (Crashes, Performance, Logic Errors)
@@ -424,6 +434,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: Microsoft's cloud incident management system using fine-tuned GPT models achieves 45.5% improvement over zero-shot approaches (ICSE 2023). Support Vector Machines achieve 89% accuracy for ITSM ticket categorization (IEEE 2018).
 
 ### 6.3 Severity Classification (Must Have)
+
 - **FR-010**: Classify issues into P1-P5 severity levels:
   - P1: Critical - System down, data loss risk
   - P2: Major - Significant functionality impaired
@@ -437,6 +448,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: The SAC-AP framework (arXiv:2207.13666) demonstrates 30% improvement in alert prioritization using reinforcement learning. Microsoft's implementation achieves 98% accuracy for P1/P2 classification (Azure Sentinel documentation).
 
 ### 6.4 Root Cause Analysis (Must Have)
+
 - **FR-014**: Correlate logs across services to identify root causes
 - **FR-015**: Integrate with GitHub CLI to analyze source code
 - **FR-016**: Perform code complexity analysis (cyclomatic complexity, coupling)
@@ -446,6 +458,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: Microsoft's TraceDiag system (ACM FSE 2023) reduces RCA time by 65% using hierarchical graph neural networks. Meta's production deployment achieves 42% accuracy in root cause identification using fine-tuned Llama 2 models.
 
 ### 6.5 Solution Recommendation (Must Have)
+
 - **FR-019**: Search vector database for similar historical issues
 - **FR-020**: Rank solutions by success rate and relevance
 - **FR-021**: Provide step-by-step remediation instructions
@@ -455,6 +468,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: Pattern recognition systems achieve 96-98% detection rates using LSTM neural networks (ACM CCS 2017). Microsoft's FLASH system shows 13.2% improvement over state-of-the-art in workflow automation.
 
 ### 6.6 Alert Routing & Management (Must Have)
+
 - **FR-024**: Route alerts based on team ownership and expertise
 - **FR-025**: Respect working hours per individual (timezone-aware)
 - **FR-026**: Implement escalation chains with timeout handling
@@ -464,6 +478,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: Azure Sentinel's Fusion technology achieves 90% median reduction in alert fatigue while maintaining detection rates (Microsoft Azure Blog). The AACT system processes 3.1M alerts with only 1.36% false negative rate.
 
 ### 6.7 Vector Database & Pattern Recognition (Must Have)
+
 - **FR-029**: Generate embeddings for all processed errors
 - **FR-030**: Cluster similar errors with 90%+ accuracy
 - **FR-031**: Track error frequency and patterns over time
@@ -473,6 +488,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: BERT embeddings achieve F1-scores >0.95 for log anomaly detection (IEEE/ACM ASE 2021). Microsoft's LogRobust framework maintains 0.67-0.76 F1-scores even with evolving log formats (ACM FSE 2019).
 
 ### 6.8 Natural Language Interface (Should Have)
+
 - **FR-034**: Support queries like:
   - "What's causing the most alerts today?"
   - "Show me all database issues from last week"
@@ -486,6 +502,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 **Academic Validation**: Microsoft's NL2KQL framework achieves 0.58 execution score translating natural language to query language (arXiv:2404.02933). Ericsson's implementation achieved 0.932 F1-score using XGBoost for log classification.
 
 ### 6.9 Integration Capabilities (Must Have)
+
 - **FR-039**: GitHub CLI integration for code access
 - **FR-040**: Slack/Teams integration for notifications
 - **FR-041**: JIRA integration for automated ticket creation and tracking
@@ -513,6 +530,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
   - Team knowledge base updates
 
 ### 6.10 Reporting & Analytics (Should Have)
+
 - **FR-044**: Generate daily/weekly/monthly reports
 - **FR-045**: Track MTTR, MTTF, and other KPIs
 - **FR-046**: Provide team performance metrics
@@ -556,6 +574,7 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ```
 
 ### 7.2 Technology Stack
+
 - **Framework**: Mastra (TypeScript-based AI agent framework)
 - **Primary Database**: PostgreSQL 15+ with partitioning
 - **Vector Database**: Pinecone/Weaviate for embeddings
@@ -568,13 +587,14 @@ The system integrates with GitHub to analyze source code related to errors, perf
 ### 7.3 Data Models
 
 #### Error Record Schema
+
 ```typescript
 interface ErrorRecord {
   id: UUID;
   timestamp: DateTime;
   service: string;
   environment: string;
-  severity: 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
+  severity: "P1" | "P2" | "P3" | "P4" | "P5";
   category: string[];
   message: string;
   stackTrace?: string;
@@ -596,6 +616,7 @@ interface ErrorRecord {
 ```
 
 #### Solution Schema
+
 ```typescript
 interface Solution {
   id: UUID;
@@ -617,6 +638,7 @@ interface Solution {
 ### 7.4 API Specifications
 
 #### REST API Endpoints
+
 ```
 POST   /api/v1/logs/ingest
 GET    /api/v1/issues?category={category}&severity={severity}&timeRange={range}
@@ -636,6 +658,7 @@ POST   /api/v1/integrations/notion/document/create
 ```
 
 #### WebSocket Events
+
 ```
 ws://api/v1/stream/alerts
 ws://api/v1/stream/logs
@@ -645,6 +668,7 @@ ws://api/v1/stream/metrics
 #### Integration Configuration Examples
 
 ##### Coralogix Integration
+
 ```typescript
 interface CoralogixConfig {
   apiKey: string;
@@ -661,6 +685,7 @@ interface CoralogixConfig {
 ```
 
 ##### Sentry Integration
+
 ```typescript
 interface SentryConfig {
   dsn: string;
@@ -675,11 +700,12 @@ interface SentryConfig {
 ```
 
 ##### Prometheus Integration
+
 ```typescript
 interface PrometheusConfig {
   endpoint: string;
   authentication: {
-    type: 'basic' | 'bearer';
+    type: "basic" | "bearer";
     credentials: string;
   };
   queries: {
@@ -693,6 +719,7 @@ interface PrometheusConfig {
 ```
 
 ### 7.5 Performance Requirements
+
 - **Log Ingestion Rate**: 10,000+ logs/second
 - **Query Response Time**: <200ms for 95th percentile
 - **Alert Latency**: <5 seconds from log to alert
@@ -701,6 +728,7 @@ interface PrometheusConfig {
 - **Data Retention**: 90 days hot, 2 years cold storage
 
 ### 7.6 High Availability Strategy
+
 - **Multi-Region Deployment**: Active-active across 3 regions
 - **Database Replication**: PostgreSQL with streaming replication
 - **Load Balancing**: Geographic and application-level
@@ -713,6 +741,7 @@ interface PrometheusConfig {
 ### 8.1 User Interface Components
 
 #### Web Dashboard
+
 - **Real-time metrics dashboard** with customizable widgets
 - **Issue explorer** with advanced filtering and search
 - **Alert configuration interface** with team/schedule management
@@ -720,6 +749,7 @@ interface PrometheusConfig {
 - **Solution effectiveness tracker** with feedback mechanisms
 
 #### CLI Interface
+
 ```bash
 # Example commands
 intelliops query "show me all P1 issues today"
@@ -729,12 +759,14 @@ intelliops solutions search --pattern="OOM error"
 ```
 
 #### Slack/Teams Integration
+
 - **Interactive alerts** with action buttons
 - **Threaded discussions** for issue resolution
 - **Natural language queries** via chat commands
 - **Daily summaries** with key metrics
 
 ### 8.2 Accessibility Requirements
+
 - WCAG 2.1 AA compliance for web interface
 - Keyboard navigation support
 - Screen reader compatibility
@@ -742,6 +774,7 @@ intelliops solutions search --pattern="OOM error"
 - API-first design for custom interfaces
 
 ### 8.3 Branding Guidelines
+
 - Clean, professional interface emphasizing clarity
 - Dark mode default for reduced eye strain
 - Color coding for severity levels (customizable for color blindness)
@@ -750,6 +783,7 @@ intelliops solutions search --pattern="OOM error"
 ## 9. Acceptance Criteria
 
 ### 9.1 Core Functionality
+
 - [ ] Successfully ingests logs from at least 3 different sources simultaneously
 - [ ] Categorizes issues with 95%+ accuracy on test dataset
 - [ ] Correctly assigns P1-P5 severity with 98%+ accuracy for critical issues
@@ -757,18 +791,21 @@ intelliops solutions search --pattern="OOM error"
 - [ ] Suggests relevant solutions for 80%+ of common issues
 
 ### 9.2 Integration Testing
+
 - [ ] GitHub CLI successfully retrieves and analyzes code for detected errors
 - [ ] Alert routing respects configured working hours across time zones
 - [ ] Natural language queries return accurate results for 90%+ of test queries
 - [ ] Vector similarity search identifies related issues with 85%+ precision
 
 ### 9.3 Performance Testing
+
 - [ ] Sustains 10,000 logs/second for 24 hours without degradation
 - [ ] Maintains <200ms query response time under load
 - [ ] Achieves 100% uptime during regional failover simulation
 - [ ] Vector database handles 10M+ embeddings without performance impact
 
 ### 9.4 User Acceptance
+
 - [ ] DevOps engineers report 60%+ reduction in time spent on issue triage
 - [ ] On-call engineers confirm appropriate alert filtering during off-hours
 - [ ] Natural language interface understood by non-technical stakeholders
@@ -777,24 +814,28 @@ intelliops solutions search --pattern="OOM error"
 ## 10. Success Metrics
 
 ### 10.1 Operational Metrics
+
 - **MTTR Reduction**: 60% decrease within 6 months
 - **Alert Noise**: 75% reduction in false positives
 - **First-Contact Resolution**: 70% of issues resolved without escalation
 - **Pattern Recognition**: 90% of recurring issues automatically identified
 
 ### 10.2 Quality Metrics
+
 - **Categorization Accuracy**: >95%
 - **Severity Classification**: >98% for P1/P2 issues
 - **Solution Effectiveness**: >80% success rate
 - **Root Cause Accuracy**: >85% correlation with manual analysis
 
 ### 10.3 Adoption Metrics
+
 - **Active Users**: 100% of DevOps team within 3 months
 - **Query Usage**: 50+ natural language queries per day
 - **Feedback Participation**: 60% of resolved issues receive feedback
 - **Integration Adoption**: 80% of alerts routed through system
 
 ### 10.4 Business Metrics
+
 - **Operational Cost**: 40% reduction in incident management costs
 - **Engineer Satisfaction**: 30% improvement in on-call satisfaction scores
 - **Knowledge Retention**: 90% of solutions documented and reusable
@@ -803,6 +844,7 @@ intelliops solutions search --pattern="OOM error"
 ## 11. Timeline & Milestones
 
 ### Phase 1: Foundation (Months 1-3)
+
 - **Month 1**: Infrastructure setup, PostgreSQL schema, Mastra framework
 - **Month 2**: Basic log ingestion, categorization, severity classification
 - **Month 3**: Alert routing, working hours configuration
@@ -810,6 +852,7 @@ intelliops solutions search --pattern="OOM error"
 **Deliverables**: MVP with core monitoring and alerting
 
 ### Phase 2: Intelligence Layer (Months 4-6)
+
 - **Month 4**: Vector database integration, embedding generation
 - **Month 5**: Pattern recognition, similarity search
 - **Month 6**: Root cause analysis, GitHub integration
@@ -817,6 +860,7 @@ intelliops solutions search --pattern="OOM error"
 **Deliverables**: Intelligent issue analysis and code correlation
 
 ### Phase 3: Solution Engine (Months 7-9)
+
 - **Month 7**: Solution recommendation system
 - **Month 8**: Natural language interface
 - **Month 9**: Feedback loop and learning mechanisms
@@ -824,6 +868,7 @@ intelliops solutions search --pattern="OOM error"
 **Deliverables**: Self-improving solution recommendation system
 
 ### Phase 4: Production Hardening (Months 10-12)
+
 - **Month 10**: High availability implementation
 - **Month 11**: Performance optimization, load testing
 - **Month 12**: Documentation, training, rollout
@@ -833,21 +878,24 @@ intelliops solutions search --pattern="OOM error"
 ## 12. Risks & Dependencies
 
 ### 12.1 Technical Risks
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Log volume overwhelming system | High | Medium | Implement sampling and rate limiting |
-| AI model accuracy degradation | High | Low | Continuous retraining pipeline |
-| Vector DB scaling limitations | Medium | Medium | Plan for sharding strategy |
-| GitHub API rate limits | Low | High | Implement caching and batching |
+
+| Risk                           | Impact | Probability | Mitigation                           |
+| ------------------------------ | ------ | ----------- | ------------------------------------ |
+| Log volume overwhelming system | High   | Medium      | Implement sampling and rate limiting |
+| AI model accuracy degradation  | High   | Low         | Continuous retraining pipeline       |
+| Vector DB scaling limitations  | Medium | Medium      | Plan for sharding strategy           |
+| GitHub API rate limits         | Low    | High        | Implement caching and batching       |
 
 ### 12.2 Operational Risks
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Team resistance to automation | Medium | Medium | Gradual rollout with champion users |
-| Alert routing mistakes | High | Low | Manual override capabilities |
-| Data privacy concerns | High | Low | Implement data anonymization |
+
+| Risk                          | Impact | Probability | Mitigation                          |
+| ----------------------------- | ------ | ----------- | ----------------------------------- |
+| Team resistance to automation | Medium | Medium      | Gradual rollout with champion users |
+| Alert routing mistakes        | High   | Low         | Manual override capabilities        |
+| Data privacy concerns         | High   | Low         | Implement data anonymization        |
 
 ### 12.3 Dependencies
+
 - **GitHub Enterprise** license for API access
 - **Mastra Framework** stability and updates
 - **PostgreSQL** high-availability setup
@@ -855,6 +903,7 @@ intelliops solutions search --pattern="OOM error"
 - **Integration APIs** from monitoring tools
 
 ### 12.4 Mitigation Strategies
+
 1. **Graceful Degradation**: Core monitoring continues if AI features fail
 2. **Manual Override**: All automated decisions can be manually overridden
 3. **Phased Rollout**: Start with non-critical systems
@@ -863,6 +912,7 @@ intelliops solutions search --pattern="OOM error"
 ## 13. Out of Scope
 
 ### Current Phase Exclusions
+
 - Automated remediation execution (only recommendations)
 - Multi-language support (English only initially)
 - Mobile native applications
@@ -873,6 +923,7 @@ intelliops solutions search --pattern="OOM error"
 - Compliance violation detection
 
 ### Potential Future Enhancements
+
 - Automated remediation with approval workflows
 - Predictive analytics for failure prevention
 - Multi-cloud cost optimization
@@ -887,58 +938,64 @@ intelliops solutions search --pattern="OOM error"
 ### 14.1 Infrastructure Costs (Monthly) - New Components Only
 
 #### AI Agent Infrastructure
-| Component | Specification | Monthly Cost |
-|-----------|--------------|--------------|
-| Kubernetes Nodes for Mastra Agents | 3x (3 nodes, 8 vCPU, 32GB RAM each) | $1,800 |
-| PostgreSQL RDS for Agent State | Multi-AZ, 8 vCPU, 32GB RAM, 2TB storage | $800 |
-| Redis Cache for Agent Memory | 3 nodes, 8GB RAM each | $225 |
-| **Total Agent Infrastructure** | | **$2,825** |
+
+| Component                          | Specification                           | Monthly Cost |
+| ---------------------------------- | --------------------------------------- | ------------ |
+| Kubernetes Nodes for Mastra Agents | 3x (3 nodes, 8 vCPU, 32GB RAM each)     | $1,800       |
+| PostgreSQL RDS for Agent State     | Multi-AZ, 8 vCPU, 32GB RAM, 2TB storage | $800         |
+| Redis Cache for Agent Memory       | 3 nodes, 8GB RAM each                   | $225         |
+| **Total Agent Infrastructure**     |                                         | **$2,825**   |
 
 #### AI Processing & Storage
-| Component | Volume | Monthly Cost |
-|-----------|--------|--------------|
-| Vector Database (Pinecone) | 50M embeddings, 5M queries/month | $2,000 |
-| OpenAI API for Embeddings | 50M tokens/day @ $0.0001/1K tokens | $3,000 |
-| Agent State Storage | 500GB for patterns and solutions | $50 |
-| **Total AI Processing** | | **$5,050** |
+
+| Component                  | Volume                             | Monthly Cost |
+| -------------------------- | ---------------------------------- | ------------ |
+| Vector Database (Pinecone) | 50M embeddings, 5M queries/month   | $2,000       |
+| OpenAI API for Embeddings  | 50M tokens/day @ $0.0001/1K tokens | $3,000       |
+| Agent State Storage        | 500GB for patterns and solutions   | $50          |
+| **Total AI Processing**    |                                    | **$5,050**   |
 
 ### 14.2 Integration Costs (Incremental Only)
 
 Since Coralogix, Sentry, Prometheus, JIRA, and Notion are already deployed:
 
-| Integration | Additional Cost | Notes |
-|-------------|----------------|-------|
-| Coralogix API Usage | $0 | Covered under existing license |
-| Sentry API Usage | $0 | Covered under existing license |
-| Prometheus Queries | $0 | No additional cost |
-| JIRA API | $0 | Covered under existing license |
-| Notion API | $0-200 | May need higher tier for 100K+ operations |
-| GitHub API | $500 | Additional API calls for code analysis |
-| **Total Integration Costs** | **$500-700** |
+| Integration                 | Additional Cost | Notes                                     |
+| --------------------------- | --------------- | ----------------------------------------- |
+| Coralogix API Usage         | $0              | Covered under existing license            |
+| Sentry API Usage            | $0              | Covered under existing license            |
+| Prometheus Queries          | $0              | No additional cost                        |
+| JIRA API                    | $0              | Covered under existing license            |
+| Notion API                  | $0-200          | May need higher tier for 100K+ operations |
+| GitHub API                  | $500            | Additional API calls for code analysis    |
+| **Total Integration Costs** | **$500-700**    |
 
 ### 14.3 Total Monthly Costs (New Infrastructure Only)
 
 #### Cost Breakdown
-| Category | Monthly Cost |
-|----------|--------------|
-| AI Agent Infrastructure | $2,825 |
-| AI Processing (Embeddings + Vector DB) | $5,050 |
-| Additional API Costs | $700 |
-| **Total Monthly Addition** | **$8,575** |
+
+| Category                               | Monthly Cost |
+| -------------------------------------- | ------------ |
+| AI Agent Infrastructure                | $2,825       |
+| AI Processing (Embeddings + Vector DB) | $5,050       |
+| Additional API Costs                   | $700         |
+| **Total Monthly Addition**             | **$8,575**   |
 
 ### 14.4 Scaling Scenarios (Incremental Costs)
 
 #### Small Scale (50 services)
+
 - **Additional Infrastructure**: Minimal, can use single region
 - **AI Processing**: 10M embeddings, 1M queries
 - **Monthly Addition**: ~$4,000
 
 #### Medium Scale (200 services)
+
 - **Additional Infrastructure**: As specified above
 - **AI Processing**: 50M embeddings, 5M queries
 - **Monthly Addition**: ~$8,575
 
 #### Large Scale (1000+ services)
+
 - **Additional Infrastructure**: Scale to 5 nodes per region
 - **AI Processing**: 200M embeddings, 20M queries
 - **Monthly Addition**: ~$22,000
@@ -946,31 +1003,34 @@ Since Coralogix, Sentry, Prometheus, JIRA, and Notion are already deployed:
 ### 14.5 Implementation Costs
 
 #### Development Resources
-| Resource | Duration | Cost |
-|----------|----------|------|
-| 2 Senior Engineers | 12 months | $480,000 |
-| 1 ML Engineer | 9 months | $180,000 |
-| 1 DevOps Engineer | 6 months | $90,000 |
-| 1 Product Manager | 6 months | $90,000 |
-| **Total Development** | | **$840,000** |
+
+| Resource              | Duration  | Cost         |
+| --------------------- | --------- | ------------ |
+| 2 Senior Engineers    | 12 months | $480,000     |
+| 1 ML Engineer         | 9 months  | $180,000     |
+| 1 DevOps Engineer     | 6 months  | $90,000      |
+| 1 Product Manager     | 6 months  | $90,000      |
+| **Total Development** |           | **$840,000** |
 
 ### 14.6 Total Cost of Ownership (TCO) - AI Enhancement Only
 
 #### Year 1 Costs
-| Category | Cost |
-|----------|------|
-| Development Team | $840,000 |
-| AI Infrastructure (12 months) | $102,900 |
-| Contingency (10%) | $94,290 |
-| **Total Year 1** | **$1,037,190** |
+
+| Category                      | Cost           |
+| ----------------------------- | -------------- |
+| Development Team              | $840,000       |
+| AI Infrastructure (12 months) | $102,900       |
+| Contingency (10%)             | $94,290        |
+| **Total Year 1**              | **$1,037,190** |
 
 #### Ongoing Annual Costs
-| Category | Cost |
-|----------|------|
-| AI Infrastructure | $102,900 |
-| Maintenance (0.5 FTE) | $60,000 |
-| Model Updates & Tuning | $20,000 |
-| **Total Annual** | **$182,900** |
+
+| Category               | Cost         |
+| ---------------------- | ------------ |
+| AI Infrastructure      | $102,900     |
+| Maintenance (0.5 FTE)  | $60,000      |
+| Model Updates & Tuning | $20,000      |
+| **Total Annual**       | **$182,900** |
 
 ### 14.7 Cost Optimization Strategies
 
@@ -993,12 +1053,14 @@ Since Coralogix, Sentry, Prometheus, JIRA, and Notion are already deployed:
 ### 14.8 ROI Analysis (AI Enhancement Only)
 
 #### Quantifiable Benefits
+
 - **MTTR Reduction**: 60% faster = $1.5M annual value
 - **Alert Noise Reduction**: 75% less = $500K productivity gain
 - **Knowledge Retention**: 90% solution reuse = $800K saved
 - **Total Annual Benefit**: $2.8M
 
 #### ROI Calculation
+
 - **Investment**: $1.04M (Year 1)
 - **Annual Return**: $2.8M
 - **Payback Period**: 4.5 months
@@ -1008,11 +1070,13 @@ Since Coralogix, Sentry, Prometheus, JIRA, and Notion are already deployed:
 ### 14.9 Budget Comparison
 
 #### Traditional Approach (Hiring More Engineers)
+
 - 4 Additional DevOps Engineers: $800K/year
 - Limited scalability and 24/7 coverage
 - Knowledge transfer challenges
 
 #### AI Agent Approach
+
 - One-time development: $840K
 - Ongoing costs: $183K/year
 - Unlimited scalability
@@ -1025,22 +1089,23 @@ Since Coralogix, Sentry, Prometheus, JIRA, and Notion are already deployed:
 
 ## Version History
 
-| Version | Date | Author | Changes |
-|---------|------|---------|---------|
-| 1.0.0 | 2025-01-27 | Product Team | Initial PRD creation |
+| Version | Date       | Author       | Changes              |
+| ------- | ---------- | ------------ | -------------------- |
+| 1.0.0   | 2025-01-27 | Product Team | Initial PRD creation |
 
 ## Approval Sign-offs
 
-| Role | Name | Date | Signature |
-|------|------|------|-----------|
-| Product Manager | | | |
-| Engineering Lead | | | |
-| DevOps Lead | | | |
-| Security Lead | | | |
+| Role             | Name | Date | Signature |
+| ---------------- | ---- | ---- | --------- |
+| Product Manager  |      |      |           |
+| Engineering Lead |      |      |           |
+| DevOps Lead      |      |      |           |
+| Security Lead    |      |      |           |
 
 ---
 
 **Next Steps:**
+
 1. Review with engineering team for technical feasibility
 2. Estimate development effort and resources
 3. Prioritize features for MVP

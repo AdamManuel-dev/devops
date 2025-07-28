@@ -8,18 +8,18 @@ rule_files:
 
 scrape_configs:
   # Prometheus itself
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]
 
   # IntelliOps AI Agent
-  - job_name: 'intelliops-agent'
+  - job_name: "intelliops-agent"
     static_configs:
-      - targets: ['intelliops-dev:3000']
-    metrics_path: '/metrics'
+      - targets: ["intelliops-dev:3000"]
+    metrics_path: "/metrics"
     scrape_interval: 30s
 
   # Node Exporter (if added later)
-  - job_name: 'node-exporter'
+  - job_name: "node-exporter"
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ["node-exporter:9100"]

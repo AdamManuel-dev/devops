@@ -1,15 +1,15 @@
 /**
  * @fileoverview Correlation ID utilities for request tracing
  * @lastmodified 2025-07-28T02:45:00Z
- * 
+ *
  * Features: Correlation ID generation, context propagation, tracing utilities
  * Main APIs: createCorrelationId, correlation context management
  * Constraints: UUID v4 based, thread-safe, lightweight
  * Patterns: Context propagation, distributed tracing, request lifecycle
  */
 
-import { randomUUID } from 'crypto';
-import { CorrelationId } from '@/types';
+import { randomUUID } from "crypto";
+import { CorrelationId } from "@/types";
 
 /**
  * Generate a new correlation ID
@@ -21,17 +21,20 @@ export function createCorrelationId(): CorrelationId {
 /**
  * Extract correlation ID from headers
  */
-export function extractCorrelationId(headers: Record<string, string | string[] | undefined>): CorrelationId | undefined {
-  const correlationHeader = headers['x-correlation-id'] || headers['X-Correlation-ID'];
-  
-  if (typeof correlationHeader === 'string') {
+export function extractCorrelationId(
+  headers: Record<string, string | string[] | undefined>,
+): CorrelationId | undefined {
+  const correlationHeader =
+    headers["x-correlation-id"] || headers["X-Correlation-ID"];
+
+  if (typeof correlationHeader === "string") {
     return correlationHeader as CorrelationId;
   }
-  
+
   if (Array.isArray(correlationHeader) && correlationHeader.length > 0) {
     return correlationHeader[0] as CorrelationId;
   }
-  
+
   return undefined;
 }
 
@@ -39,7 +42,8 @@ export function extractCorrelationId(headers: Record<string, string | string[] |
  * Validate correlation ID format
  */
 export function isValidCorrelationId(value: string): value is CorrelationId {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value);
 }
 
@@ -89,7 +93,7 @@ class CorrelationContext {
     if (existing) {
       return existing;
     }
-    
+
     const newId = createCorrelationId();
     this.set(newId);
     return newId;

@@ -1,14 +1,14 @@
 /**
  * @fileoverview Core type definitions for IntelliOps AI Agent
  * @lastmodified 2025-07-28T02:35:00Z
- * 
+ *
  * Features: Type definitions, interfaces, enums for agent system
  * Main APIs: Agent types, configuration interfaces, data models
  * Constraints: TypeScript strict mode, comprehensive typing
  * Patterns: Zod validation, discriminated unions, branded types
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Agent Configuration Types
 export interface AgentConfig {
@@ -23,7 +23,12 @@ export interface AgentConfig {
 }
 
 // Health Check Types
-export const HealthStatus = z.enum(['healthy', 'unhealthy', 'degraded', 'unknown']);
+export const HealthStatus = z.enum([
+  "healthy",
+  "unhealthy",
+  "degraded",
+  "unknown",
+]);
 export type HealthStatus = z.infer<typeof HealthStatus>;
 
 export interface HealthCheck {
@@ -34,7 +39,13 @@ export interface HealthCheck {
 }
 
 // Agent Lifecycle Types
-export const AgentState = z.enum(['starting', 'running', 'stopping', 'stopped', 'error']);
+export const AgentState = z.enum([
+  "starting",
+  "running",
+  "stopping",
+  "stopped",
+  "error",
+]);
 export type AgentState = z.infer<typeof AgentState>;
 
 export interface AgentInfo {
@@ -48,15 +59,15 @@ export interface AgentInfo {
 }
 
 // Error Types
-export const Severity = z.enum(['P1', 'P2', 'P3', 'P4', 'P5']);
+export const Severity = z.enum(["P1", "P2", "P3", "P4", "P5"]);
 export type Severity = z.infer<typeof Severity>;
 
 export const Category = z.enum([
-  'Infrastructure',
-  'Application', 
-  'Security',
-  'Database',
-  'Integration'
+  "Infrastructure",
+  "Application",
+  "Security",
+  "Database",
+  "Integration",
 ]);
 export type Category = z.infer<typeof Category>;
 
@@ -128,7 +139,7 @@ export const AgentConfigSchema = z.object({
   dependencies: z.array(z.string()),
   healthCheckInterval: z.number().positive(),
   maxRetries: z.number().nonnegative(),
-  timeout: z.number().positive()
+  timeout: z.number().positive(),
 });
 
 export const ErrorRecordSchema = z.object({
@@ -147,15 +158,15 @@ export const ErrorRecordSchema = z.object({
     source: z.string(),
     ingestionTime: z.date(),
     processingTime: z.number().nonnegative(),
-    correlationId: z.string().uuid()
-  })
+    correlationId: z.string().uuid(),
+  }),
 });
 
 // Utility Types
 export type Brand<T, K> = T & { readonly __brand: K };
-export type AgentId = Brand<string, 'AgentId'>;
-export type CorrelationId = Brand<string, 'CorrelationId'>;
-export type EmbeddingVector = Brand<readonly number[], 'EmbeddingVector'>;
+export type AgentId = Brand<string, "AgentId">;
+export type CorrelationId = Brand<string, "CorrelationId">;
+export type EmbeddingVector = Brand<readonly number[], "EmbeddingVector">;
 
 // Event Types
 export interface AgentEvent {
@@ -167,7 +178,7 @@ export interface AgentEvent {
 
 export interface LogEvent {
   readonly timestamp: Date;
-  readonly level: 'debug' | 'info' | 'warn' | 'error';
+  readonly level: "debug" | "info" | "warn" | "error";
   readonly message: string;
   readonly context: Record<string, unknown>;
   readonly correlationId: CorrelationId;
