@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+# Configuration - can be overridden via environment variables
+NOTIFICATION_SCRIPT="${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}"
+CLAUDE_COMMAND="${CLAUDE_COMMAND:-claude}"
+REVIEW_TIMEOUT="${REVIEW_TIMEOUT:-300}" # 5 minutes default timeout
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -155,7 +160,12 @@ EOF
 )"
     
     # Execute the reviewer
-    claude -p "$prompt" 2>/dev/null || {
+    if ! command -v "$CLAUDE_COMMAND" >/dev/null 2>&1; then
+        echo -e "${RED}❌ $CLAUDE_COMMAND command not found. Please install Claude CLI${NC}"
+        return 1
+    fi
+    
+    "$CLAUDE_COMMAND" -p "$prompt" 2>/dev/null || {
         echo -e "${RED}❌ Stage 1 failed with critical issues${NC}"
         return 1
     }
@@ -212,19 +222,34 @@ EOF
 )"
     
     # Execute all 3 reviewers in parallel
-    claude -p "$readability_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$readability_prompt" 2>/dev/null &
     local readability_pid=$!
     
-    claude -p "$quality_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$quality_prompt" 2>/dev/null &
     local quality_pid=$!
     
-    claude -p "$security_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$security_prompt" 2>/dev/null &
     local security_pid=$!
     
-    # Wait for all to complete
-    wait $readability_pid || return 1
-    wait $quality_pid || return 1
-    wait $security_pid || return 1
+    # Wait for all to complete and track failures
+    local failed_processes=()
+    
+    if ! wait $readability_pid; then
+        failed_processes+=("readability")
+    fi
+    
+    if ! wait $quality_pid; then
+        failed_processes+=("quality")
+    fi
+    
+    if ! wait $security_pid; then
+        failed_processes+=("security")
+    fi
+    
+    if [ ${#failed_processes[@]} -gt 0 ]; then
+        echo -e "${RED}❌ Failed processes: ${failed_processes[*]}${NC}"
+        return 1
+    fi
     
     echo -e "${GREEN}✅ Stage 2: Core quality checks passed${NC}"
     return 0
@@ -264,15 +289,27 @@ EOF
 )"
     
     # Execute both reviewers in parallel
-    claude -p "$design_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$design_prompt" 2>/dev/null &
     local design_pid=$!
     
-    claude -p "$testing_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$testing_prompt" 2>/dev/null &
     local testing_pid=$!
     
-    # Wait for both to complete
-    wait $design_pid || return 1
-    wait $testing_pid || return 1
+    # Wait for both to complete and track failures
+    local failed_processes=()
+    
+    if ! wait $design_pid; then
+        failed_processes+=("design")
+    fi
+    
+    if ! wait $testing_pid; then
+        failed_processes+=("testing")
+    fi
+    
+    if [ ${#failed_processes[@]} -gt 0 ]; then
+        echo -e "${RED}❌ Failed processes: ${failed_processes[*]}${NC}"
+        return 1
+    fi
     
     echo -e "${GREEN}✅ Stage 3: Advanced validation passed${NC}"
     return 0
@@ -322,15 +359,27 @@ EOF
 )"
     
     # Execute both reviewers in parallel
-    claude -p "$e2e_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$e2e_prompt" 2>/dev/null &
     local e2e_pid=$!
     
-    claude -p "$final_prompt" 2>/dev/null &
+    "$CLAUDE_COMMAND" -p "$final_prompt" 2>/dev/null &
     local final_pid=$!
     
-    # Wait for both to complete
-    wait $e2e_pid || return 1
-    wait $final_pid || return 1
+    # Wait for both to complete and track failures
+    local failed_processes=()
+    
+    if ! wait $e2e_pid; then
+        failed_processes+=("e2e")
+    fi
+    
+    if ! wait $final_pid; then
+        failed_processes+=("final")
+    fi
+    
+    if [ ${#failed_processes[@]} -gt 0 ]; then
+        echo -e "${RED}❌ Failed processes: ${failed_processes[*]}${NC}"
+        return 1
+    fi
     
     echo -e "${GREEN}✅ Stage 4: Merge readiness validated${NC}"
     return 0
@@ -345,10 +394,13 @@ execute_git_command() {
         "add")
             echo -e "${GREEN}✅ Stage 1 passed! Executing: git add .${NC}"
             git add .
-            /Users/adammanuel/.claude/tools/send-notification.sh "review-orchestrator" "📢 Files Staged - ✅ Basic validation passed - files added to staging"
+            if command -v "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" >/dev/null 2>&1; then
+                "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" "review-orchestrator" "📢 Files Staged - ✅ Basic validation passed - files added to staging"
+            fi
             ;;
         "commit")
-            local commit_message="feat: automated code improvements
+            local commit_message=$(cat <<'EOF'
+feat: automated code improvements
 
 - Fixed basic issues (console.logs, unused imports, type errors)
 - Improved code readability (naming, structure, documentation)  
@@ -357,24 +409,47 @@ execute_git_command() {
 
 🤖 Generated with Claude Code
 
-Co-authored-by: Review-Orchestrator <review-orchestrator@ai>"
+Co-authored-by: Review-Orchestrator <review-orchestrator@ai>
+EOF
+)
             
             echo -e "${GREEN}✅ Stages 1-2 passed! Executing: git commit${NC}"
             git commit -m "$commit_message"
-            /Users/adammanuel/.claude/tools/send-notification.sh "review-orchestrator" "📢 Committed - ✅ Code quality validated - changes committed"
+            if command -v "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" >/dev/null 2>&1; then
+                "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" "review-orchestrator" "📢 Committed - ✅ Code quality validated - changes committed"
+            fi
             ;;
         "push")
             local branch_name=$(git branch --show-current)
             echo -e "${GREEN}✅ Stages 1-3 passed! Executing: git push origin $branch_name${NC}"
             git push origin "$branch_name"
-            /Users/adammanuel/.claude/tools/send-notification.sh "review-orchestrator" "📢 Pushed - ✅ Full validation passed - code pushed to remote"
+            if command -v "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" >/dev/null 2>&1; then
+                "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" "review-orchestrator" "📢 Pushed - ✅ Full validation passed - code pushed to remote"
+            fi
             ;;
         "merge")
             echo -e "${CYAN}🎯 Code is ready for merge to main branch${NC}"
             echo -e "${CYAN}📋 All quality gates passed - manual merge approval recommended${NC}"
-            /Users/adammanuel/.claude/tools/send-notification.sh "review-orchestrator" "📢 Ready for Merge - ✅ Complete review passed - ready for main branch"
+            if command -v "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" >/dev/null 2>&1; then
+                "${NOTIFICATION_SCRIPT:-/Users/adammanuel/.claude/tools/send-notification.sh}" "review-orchestrator" "📢 Ready for Merge - ✅ Complete review passed - ready for main branch"
+            fi
             ;;
     esac
+}
+
+# Validate git repository
+validate_git_repo() {
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
+        echo -e "${RED}❌ Not in a git repository${NC}"
+        return 1
+    fi
+    
+    if [ ! -d "$1" ]; then
+        echo -e "${RED}❌ Directory $1 does not exist${NC}"
+        return 1
+    fi
+    
+    return 0
 }
 
 # Main execution
@@ -383,6 +458,11 @@ main() {
     
     # Parse command
     IFS='|' read -r git_command directory stages <<< "$(parse_command "$args")"
+    
+    # Validate environment
+    if ! validate_git_repo "$directory"; then
+        exit 1
+    fi
     
     # Show header
     show_header "${git_command:-default}"

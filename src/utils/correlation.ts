@@ -1,6 +1,6 @@
 /**
  * @fileoverview Correlation ID utilities for request tracing
- * @lastmodified 2025-07-28T02:45:00Z
+ * @lastmodified 2025-07-28T05:58:47Z
  *
  * Features: Correlation ID generation, context propagation, tracing utilities
  * Main APIs: createCorrelationId, correlation context management
@@ -100,9 +100,11 @@ class CorrelationContext {
   }
 
   private getContextKey(): string {
-    // In a real implementation, this would use async_hooks or similar
-    // For now, use a simple approach based on process/thread
-    return `${process.pid}-${Date.now()}`;
+    // In a real implementation, this would use async_hooks or AsyncLocalStorage
+    // For now, use a simple approach based on process ID and timestamp
+    const processId = process.pid;
+    const timestamp = Date.now();
+    return `process-${processId}-time-${timestamp}`;
   }
 }
 

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Base agent class and lifecycle management for Mastra framework
- * @lastmodified 2025-07-28T02:40:00Z
+ * @lastmodified 2025-07-28T05:58:47Z
  *
  * Features: Agent lifecycle, health checks, error handling, event emission
  * Main APIs: BaseAgent class, agent registration, health monitoring
@@ -55,10 +55,8 @@ export abstract class BaseAgent extends EventEmitter {
    * Start the agent and begin health monitoring
    */
   public async start(): Promise<void> {
-    if (this.state !== "stopped") {
-      throw new Error(`Cannot start agent in state: ${this.state}`);
-    }
-
+    this.validateCanStart();
+    
     this.setState("starting");
     this.startedAt = new Date();
 
@@ -70,25 +68,39 @@ export abstract class BaseAgent extends EventEmitter {
       this.setState("running");
       this.startHealthMonitoring();
 
-      this.emit("started", this.createEvent("started"));
+      this.emitStartedEvent();
       this.logger.info("Agent started successfully", {
         agentId: this.config.id,
       });
     } catch (error) {
-      this.setState("error");
-      this.logger.error("Failed to start agent", {
-        error: error instanceof Error ? error.message : String(error),
-        agentId: this.config.id,
-      });
+      this.handleStartupError(error);
       throw error;
     }
+  }
+
+  private validateCanStart(): void {
+    if (this.state !== "stopped") {
+      throw new Error(`Cannot start agent in state: ${this.state}`);
+    }
+  }
+
+  private emitStartedEvent(): void {
+    this.emit("started", this.createEvent("started"));
+  }
+
+  private handleStartupError(error: unknown): void {
+    this.setState("error");
+    this.logger.error("Failed to start agent", {
+      error: error instanceof Error ? error.message : String(error),
+      agentId: this.config.id,
+    });
   }
 
   /**
    * Stop the agent gracefully
    */
   public async stop(): Promise<void> {
-    if (this.state === "stopped" || this.state === "stopping") {
+    if (this.isAlreadyStoppedOrStopping()) {
       return;
     }
 
@@ -101,18 +113,30 @@ export abstract class BaseAgent extends EventEmitter {
       await this.onStop();
 
       this.setState("stopped");
-      this.emit("stopped", this.createEvent("stopped"));
+      this.emitStoppedEvent();
       this.logger.info("Agent stopped successfully", {
         agentId: this.config.id,
       });
     } catch (error) {
-      this.setState("error");
-      this.logger.error("Failed to stop agent gracefully", {
-        error: error instanceof Error ? error.message : String(error),
-        agentId: this.config.id,
-      });
+      this.handleShutdownError(error);
       throw error;
     }
+  }
+
+  private isAlreadyStoppedOrStopping(): boolean {
+    return this.state === "stopped" || this.state === "stopping";
+  }
+
+  private emitStoppedEvent(): void {
+    this.emit("stopped", this.createEvent("stopped"));
+  }
+
+  private handleShutdownError(error: unknown): void {
+    this.setState("error");
+    this.logger.error("Failed to stop agent gracefully", {
+      error: error instanceof Error ? error.message : String(error),
+      agentId: this.config.id,
+    });
   }
 
   /**
@@ -206,13 +230,30 @@ export abstract class BaseAgent extends EventEmitter {
       clearInterval(this.healthTimer);
     }
 
-    this.healthTimer = setInterval(
-      () => this.checkHealth(),
-      this.config.healthCheckInterval,
-    );
+    let healthCheckInProgress = false;
+    
+    this.healthTimer = setInterval(async () => {
+      if (healthCheckInProgress) {
+        this.logger.debug("Skipping health check - previous check still in progress", {
+          agentId: this.config.id
+        });
+        return;
+      }
+      
+      healthCheckInProgress = true;
+      try {
+        await this.checkHealth();
+      } finally {
+        healthCheckInProgress = false;
+      }
+    }, this.config.healthCheckInterval);
 
-    // Perform initial health check
-    this.checkHealth();
+    // Perform initial health check with proper error handling
+    this.checkHealth().catch(error => 
+      this.logger.error("Initial health check failed", { 
+        agentId: this.config.id,
+        error: error.message 
+      }));
   }
 
   private stopHealthMonitoring(): void {
@@ -320,21 +361,40 @@ export class AgentRegistry {
   }
 
   /**
-   * Start all agents
+   * Start all agents with isolated error handling
    */
-  public async startAll(): Promise<void> {
-    const startPromises = Array.from(this.agents.values()).map((agent) =>
-      agent.start().catch((error) => {
-        this.logger.error("Failed to start agent", {
-          agentId: agent.getInfo().id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw error;
-      }),
+  public async startAll(): Promise<{ successful: string[]; failed: string[] }> {
+    const results = await Promise.allSettled(
+      Array.from(this.agents.values()).map(async (agent) => {
+        try {
+          await agent.start();
+          return { success: true, agentId: agent.getInfo().id };
+        } catch (error) {
+          this.logger.error("Failed to start agent", {
+            agentId: agent.getInfo().id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return { success: false, agentId: agent.getInfo().id, error };
+        }
+      })
     );
 
-    await Promise.all(startPromises);
-    this.logger.info("All agents started", { count: this.agents.size });
+    const successful = results
+      .filter((r): r is PromiseFulfilledResult<{success: true, agentId: string}> => 
+        r.status === 'fulfilled' && r.value.success)
+      .map(r => r.value.agentId);
+      
+    const failed = results
+      .filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+      .map(r => r.status === 'fulfilled' ? (r.value as any).agentId : 'unknown');
+
+    this.logger.info("Agent startup completed", { 
+      successful: successful.length, 
+      failed: failed.length,
+      total: this.agents.size 
+    });
+
+    return { successful, failed };
   }
 
   /**

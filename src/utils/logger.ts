@@ -1,6 +1,6 @@
 /**
  * @fileoverview Structured logging utility with correlation tracking
- * @lastmodified 2025-07-28T02:45:00Z
+ * @lastmodified 2025-07-28T05:58:47Z
  *
  * Features: Structured logging, correlation IDs, multiple transports, log levels
  * Main APIs: Logger class, log formatting, context enrichment
@@ -10,6 +10,7 @@
 
 import winston from "winston";
 import { AgentId, CorrelationId, LogEvent } from "@/types";
+import { getEnvVar } from "@/utils/env-validator";
 
 export interface LoggerConfig {
   readonly service: string;
@@ -103,15 +104,15 @@ export class Logger {
   private enrichContext(context: LogContext): LogContext {
     return {
       ...context,
-      environment: process.env.NODE_ENV || "development",
-      version: process.env.npm_package_version || "1.0.0",
-      hostname: process.env.HOSTNAME || "localhost",
+      environment: getEnvVar("NODE_ENV", "development", (val) => ["development", "production", "test"].includes(val)),
+      version: getEnvVar("npm_package_version", "1.0.0"),
+      hostname: getEnvVar("HOSTNAME", "localhost"),
       processId: process.pid,
     };
   }
 
   private createWinstonLogger(): winston.Logger {
-    const logLevel = this.config.level || process.env.LOG_LEVEL || "info";
+    const logLevel = this.config.level || getEnvVar("LOG_LEVEL", "info", (val) => ["error", "warn", "info", "debug"].includes(val));
 
     return winston.createLogger({
       level: logLevel,

@@ -19,7 +19,7 @@ app.post('/user', (req, res) => {
   });
 });
 
-// ✅ Safe input handling
+// ✅ Safe input handling (Express.js example)
 import { body, validationResult } from 'express-validator';
 
 app.post('/user', 
@@ -40,6 +40,21 @@ app.post('/user',
     });
   }
 );
+
+// ✅ Framework-agnostic validation
+function validateUserId(id: unknown): number {
+  if (typeof id !== 'number' && typeof id !== 'string') {
+    throw new ValidationError('User ID must be a number or string');
+  }
+  
+  const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+  
+  if (isNaN(numId) || numId <= 0) {
+    throw new ValidationError('User ID must be a positive integer');
+  }
+  
+  return numId;
+}
 ```
 
 ### 2. Secrets & Sensitive Data
@@ -54,17 +69,39 @@ function connectToApi() {
   });
 }
 
-// ✅ Environment variables
-const API_KEY = process.env.API_KEY;
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!API_KEY || !DATABASE_URL) {
-  throw new Error('Required environment variables not set');
+// ✅ Environment variables with validation
+interface RequiredEnvVars {
+  API_KEY: string;
+  DATABASE_URL: string;
+  JWT_SECRET: string;
 }
+
+function validateEnvironment(): RequiredEnvVars {
+  const requiredVars = ['API_KEY', 'DATABASE_URL', 'JWT_SECRET'] as const;
+  const missing: string[] = [];
+  
+  for (const varName of requiredVars) {
+    if (!process.env[varName]) {
+      missing.push(varName);
+    }
+  }
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  
+  return {
+    API_KEY: process.env.API_KEY!,
+    DATABASE_URL: process.env.DATABASE_URL!,
+    JWT_SECRET: process.env.JWT_SECRET!
+  };
+}
+
+const env = validateEnvironment();
 
 function connectToApi() {
   return fetch('https://api.example.com/data', {
-    headers: { 'Authorization': `Bearer ${API_KEY}` }
+    headers: { 'Authorization': `Bearer ${env.API_KEY}` }
   });
 }
 ```
@@ -109,15 +146,31 @@ function renderUserComment(comment: string) {
   return `<div class="comment">${comment}</div>`;
 }
 
-// ✅ Safe HTML rendering
-import { escape } from 'html-escaper';
+// ✅ Safe HTML rendering (multiple approaches)
 
-function renderUserComment(comment: string) {
-  const safeComment = escape(comment);
+// Option 1: Manual escaping
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderUserComment(comment: string): string {
+  const safeComment = escapeHtml(comment);
   return `<div class="comment">${safeComment}</div>`;
 }
 
-// Or better yet, use a templating engine with auto-escaping
+// Option 2: Using DOMPurify (client-side)
+// import DOMPurify from 'dompurify';
+// const cleanHtml = DOMPurify.sanitize(userInput);
+
+// Option 3: React JSX (auto-escapes by default)
+// function CommentComponent({ comment }: { comment: string }) {
+//   return <div className="comment">{comment}</div>; // Auto-escaped
+// }
 ```
 
 ### 5. Authentication & Authorization
@@ -184,10 +237,26 @@ import helmet from 'helmet';
 
 app.use(helmet()); // Security headers
 
+// ✅ Secure CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  maxAge: 86400 // Cache preflight for 24 hours
 }));
 ```
 
@@ -214,13 +283,137 @@ app.post('/login', loginLimiter, (req, res) => {
 });
 ```
 
+### 8. Client-Side Security
+
+```typescript
+// ❌ Insecure client-side patterns
+class ApiClient {
+  private apiKey = 'sk-1234567890abcdef'; // Never store secrets client-side
+  
+  async getData() {
+    // Sending API key in URL (logged in browser history)
+    return fetch(`/api/data?key=${this.apiKey}`);
+  }
+  
+  storeUserData(data: any) {
+    // Storing sensitive data in localStorage (persistent, not secure)
+    localStorage.setItem('userData', JSON.stringify(data));
+  }
+}
+
+// ✅ Secure client-side patterns
+class SecureApiClient {
+  async getData() {
+    // Use httpOnly cookies or secure token storage
+    return fetch('/api/data', {
+      credentials: 'include', // Send httpOnly cookies
+      headers: {
+        'Content-Type': 'application/json',
+        // Never include API keys in client-side code
+      }
+    });
+  }
+  
+  storeUserData(data: UserPublicData) {
+    // Use sessionStorage for temporary data, never store sensitive info
+    const publicData = {
+      id: data.id,
+      name: data.name,
+      // Never store: passwords, tokens, SSN, etc.
+    };
+    sessionStorage.setItem('userPublicData', JSON.stringify(publicData));
+  }
+}
+```
+
+### 9. Alternative Authentication Methods
+
+```typescript
+// OAuth 2.0 / OpenID Connect
+class OAuthHandler {
+  private readonly clientId: string;
+  private readonly redirectUri: string;
+  
+  constructor(clientId: string, redirectUri: string) {
+    this.clientId = clientId;
+    this.redirectUri = redirectUri;
+  }
+  
+  initiateLogin(provider: 'google' | 'github' | 'auth0') {
+    const authUrl = this.buildAuthUrl(provider);
+    window.location.href = authUrl;
+  }
+  
+  private buildAuthUrl(provider: string): string {
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: this.redirectUri,
+      response_type: 'code',
+      scope: 'openid profile email',
+      state: this.generateState() // CSRF protection
+    });
+    
+    return `https://${provider}.com/oauth/authorize?${params}`;
+  }
+  
+  private generateState(): string {
+    return crypto.getRandomValues(new Uint8Array(16))
+      .reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+  }
+}
+
+// API Key authentication (server-side)
+class ApiKeyAuth {
+  private static readonly VALID_KEY_LENGTH = 32;
+  
+  static validateApiKey(key: string): boolean {
+    if (!key || key.length !== this.VALID_KEY_LENGTH) {
+      return false;
+    }
+    
+    // Use constant-time comparison to prevent timing attacks
+    return this.constantTimeEquals(key, this.getValidKey(key));
+  }
+  
+  private static constantTimeEquals(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    
+    return result === 0;
+  }
+  
+  private static getValidKey(providedKey: string): string {
+    // Look up the key in your secure storage
+    // Return empty string if not found to maintain constant time
+    return process.env.VALID_API_KEYS?.includes(providedKey) ? providedKey : '';
+  }
+}
+```
+
 ## Execution Instructions
 
 1. **Scan Files**: Use Grep to find potential security issues
+   - Search for: `console\.log|hardcoded.*key|password.*=|api.*key|secret.*=`
+   - Check for: `innerHTML|eval\(|setTimeout.*string|localStorage\.setItem`
+   - Look for SQL queries: `SELECT.*\$\{|INSERT.*\$\{|UPDATE.*\$\{`
 2. **Analyze Vulnerabilities**: Check for common security patterns
+   - Identify framework (Express, React, Vue, etc.) to apply appropriate fixes
+   - Prioritize: hardcoded secrets > SQL injection > XSS > data exposure
+   - Check environment setup and configuration files
 3. **Apply Fixes**: Use Edit tool to implement security improvements
+   - Replace hardcoded secrets with environment variables
+   - Add input validation and sanitization
+   - Implement proper authentication patterns
+   - Use framework-specific security measures
 4. **Validate**: Ensure fixes don't break functionality
-5. **Report**: Document security enhancements made
+   - Test that environment variables are properly configured
+   - Verify authentication flows still work
+   - Check that sanitization doesn't break legitimate use cases
+5. **Report**: Document security enhancements made with risk levels
 
 ## Response Format
 

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Core type definitions for IntelliOps AI Agent
- * @lastmodified 2025-07-28T02:35:00Z
+ * @lastmodified 2025-07-28T05:58:47Z
  *
  * Features: Type definitions, interfaces, enums for agent system
  * Main APIs: Agent types, configuration interfaces, data models

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Main entry point for IntelliOps AI Agent application
- * @lastmodified 2025-07-28T02:50:00Z
+ * @lastmodified 2025-07-28T05:58:47Z
  *
  * Features: Application bootstrap, graceful shutdown, agent lifecycle management
  * Main APIs: Application startup, configuration loading, health check server
@@ -14,8 +14,10 @@ import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
 import { AgentRegistry } from "@/core/agent";
+import { AgentInfo } from "@/types";
 import { Logger, createLogger } from "@/utils/logger";
 import { createCorrelationId } from "@/utils/correlation";
+import { validateEnvironment } from "@/utils/env-validator";
 
 // Application configuration
 interface AppConfig {
@@ -24,11 +26,19 @@ interface AppConfig {
   readonly logLevel: string;
 }
 
+// Application configuration constants
+const DEFAULT_PORT = 3000;
+const DEFAULT_NODE_ENV = "development";
+const DEFAULT_LOG_LEVEL = "info";
+
 function loadConfig(): AppConfig {
+  // Validate environment variables at startup
+  const validatedEnv = validateEnvironment();
+  
   return {
-    port: parseInt(process.env.PORT || "3000", 10),
-    nodeEnv: process.env.NODE_ENV || "development",
-    logLevel: process.env.LOG_LEVEL || "info",
+    port: validatedEnv.PORT,
+    nodeEnv: validatedEnv.NODE_ENV,
+    logLevel: validatedEnv.LOG_LEVEL,
   };
 }
 
@@ -112,111 +122,180 @@ class Application {
   private createExpressApp(): express.Application {
     const app = express();
 
-    // Security middleware
-    app.use(helmet());
-    app.use(cors());
-    app.use(compression());
+    this.setupSecurityMiddleware(app);
+    this.setupBodyParsingMiddleware(app);
+    this.setupRequestLoggingMiddleware(app);
+    this.setupHealthEndpoints(app);
+    this.setupErrorHandling(app);
 
-    // Body parsing middleware
-    app.use(express.json({ limit: "10mb" }));
+    return app;
+  }
+
+  private setupSecurityMiddleware(app: express.Application): void {
+    // Content Security Policy configuration
+    const cspDirectives = {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    };
+
+    // HTTP Strict Transport Security configuration
+    const hstsConfig = {
+      maxAge: 31536000, // 1 year in seconds
+      includeSubDomains: true,
+      preload: true
+    };
+
+    app.use(helmet({
+      contentSecurityPolicy: { directives: cspDirectives },
+      hsts: hstsConfig
+    }));
+
+    // CORS configuration
+    const validatedEnv = validateEnvironment();
+    const allowedOrigins = validatedEnv.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+    app.use(cors({
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id']
+    }));
+
+    app.use(compression());
+  }
+
+  private setupBodyParsingMiddleware(app: express.Application): void {
+    const JSON_SIZE_LIMIT = "10mb";
+    
+    app.use(express.json({ limit: JSON_SIZE_LIMIT }));
     app.use(express.urlencoded({ extended: true }));
 
-    // Request logging middleware
+  }
+
+  private setupRequestLoggingMiddleware(app: express.Application): void {
     app.use((req, res, next) => {
       const correlationId = createCorrelationId();
       req.headers["x-correlation-id"] = correlationId;
 
-      this.logger.info("HTTP Request", {
+      this.logger.info("HTTP Request received", {
         method: req.method,
         path: req.path,
         correlationId,
         userAgent: req.get("User-Agent"),
-        ip: req.ip,
+        clientIp: req.ip,
       });
 
       next();
     });
 
-    // Health check endpoint
-    app.get("/health", (req, res) => {
-      const agents = this.agentRegistry.getAll();
-      const healthyAgents = agents.filter(
-        (agent) => agent.health.status === "healthy",
-      );
+  }
 
-      const health = {
-        status: healthyAgents.length === agents.length ? "healthy" : "degraded",
-        timestamp: new Date().toISOString(),
-        version: process.env.npm_package_version || "1.0.0",
-        agents: {
-          total: agents.length,
-          healthy: healthyAgents.length,
-          unhealthy: agents.length - healthyAgents.length,
-        },
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        correlationId: req.headers["x-correlation-id"],
-      };
+  private setupHealthEndpoints(app: express.Application): void {
+    app.get("/health", this.handleHealthCheck.bind(this));
+    app.get("/agents", this.handleAgentStatus.bind(this));
+    app.get("/ready", this.handleReadinessCheck.bind(this));
+  }
 
-      res.status(health.status === "healthy" ? 200 : 503).json(health);
-    });
+  private handleHealthCheck(req: express.Request, res: express.Response): void {
+    const agents = this.agentRegistry.getAll();
+    const healthyAgents = this.filterHealthyAgents(agents);
+    const isSystemHealthy = this.isSystemHealthy(agents, healthyAgents);
 
-    // Agent status endpoint
-    app.get("/agents", (req, res) => {
-      const agents = this.agentRegistry.getAll();
-      res.json({
-        agents,
-        timestamp: new Date().toISOString(),
-        correlationId: req.headers["x-correlation-id"],
-      });
-    });
-
-    // Ready check endpoint
-    app.get("/ready", (req, res) => {
-      const agents = this.agentRegistry.getAll();
-      const runningAgents = agents.filter((agent) => agent.state === "running");
-
-      if (runningAgents.length === agents.length && agents.length > 0) {
-        res.status(200).json({
-          status: "ready",
-          timestamp: new Date().toISOString(),
-          correlationId: req.headers["x-correlation-id"],
-        });
-      } else {
-        res.status(503).json({
-          status: "not-ready",
-          message: "Not all agents are running",
-          timestamp: new Date().toISOString(),
-          correlationId: req.headers["x-correlation-id"],
-        });
-      }
-    });
-
-    // Error handling middleware
-    app.use(
-      (
-        error: Error,
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        this.logger.error("HTTP Error", {
-          error: error.message,
-          stack: error.stack,
-          path: req.path,
-          method: req.method,
-          correlationId: req.headers["x-correlation-id"],
-        });
-
-        res.status(500).json({
-          error: "Internal Server Error",
-          correlationId: req.headers["x-correlation-id"],
-          timestamp: new Date().toISOString(),
-        });
+    const healthResponse = {
+      status: isSystemHealthy ? "healthy" : "degraded",
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || "1.0.0",
+      agents: {
+        total: agents.length,
+        healthy: healthyAgents.length,
+        unhealthy: agents.length - healthyAgents.length,
       },
-    );
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      correlationId: req.headers["x-correlation-id"],
+    };
 
-    return app;
+    const statusCode = isSystemHealthy ? 200 : 503;
+    res.status(statusCode).json(healthResponse);
+  }
+
+  private handleAgentStatus(req: express.Request, res: express.Response): void {
+    const agents = this.agentRegistry.getAll();
+    
+    res.json({
+      agents,
+      timestamp: new Date().toISOString(),
+      correlationId: req.headers["x-correlation-id"],
+    });
+  }
+
+  private handleReadinessCheck(req: express.Request, res: express.Response): void {
+    const agents = this.agentRegistry.getAll();
+    const runningAgents = this.filterRunningAgents(agents);
+    const isSystemReady = this.isSystemReady(agents, runningAgents);
+
+    const baseResponse = {
+      timestamp: new Date().toISOString(),
+      correlationId: req.headers["x-correlation-id"],
+    };
+
+    if (isSystemReady) {
+      res.status(200).json({
+        ...baseResponse,
+        status: "ready",
+      });
+    } else {
+      res.status(503).json({
+        ...baseResponse,
+        status: "not-ready",
+        message: "Not all agents are running",
+      });
+    }
+  }
+
+  // Helper methods for health checks
+  private filterHealthyAgents(agents: AgentInfo[]) {
+    return agents.filter((agent) => agent.health.status === "healthy");
+  }
+
+  private filterRunningAgents(agents: AgentInfo[]) {
+    return agents.filter((agent) => agent.state === "running");
+  }
+
+  private isSystemHealthy(allAgents: AgentInfo[], healthyAgents: AgentInfo[]): boolean {
+    return healthyAgents.length === allAgents.length;
+  }
+
+  private isSystemReady(allAgents: AgentInfo[], runningAgents: AgentInfo[]): boolean {
+    return runningAgents.length === allAgents.length && allAgents.length > 0;
+  }
+
+  private setupErrorHandling(app: express.Application): void {
+    app.use(this.handleApplicationError.bind(this));
+  }
+
+  private handleApplicationError(
+    error: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ): void {
+    this.logger.error("HTTP Error occurred", {
+      errorMessage: error.message,
+      stackTrace: error.stack,
+      requestPath: req.path,
+      httpMethod: req.method,
+      correlationId: req.headers["x-correlation-id"],
+    });
+
+    const errorResponse = {
+      error: "Internal Server Error",
+      correlationId: req.headers["x-correlation-id"],
+      timestamp: new Date().toISOString(),
+    };
+
+    res.status(500).json(errorResponse);
   }
 
   private async startHttpServer(): Promise<void> {
@@ -276,6 +355,11 @@ class Application {
 // Start the application
 const app = new Application();
 app.start().catch((error) => {
-  console.error("Failed to start application:", error);
+  // Use proper error handling instead of console.error
+  const logger = createLogger({ service: "intelliops-startup", level: "error" });
+  logger.error("Failed to start application", {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
   process.exit(1);
 });
